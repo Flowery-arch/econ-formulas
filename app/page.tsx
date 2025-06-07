@@ -44,7 +44,7 @@ export default function Home() {
     setIsModalOpen(false);
   };
 
-  const handleInputChange = (index, value) => {
+  const handleInputChange = (index: number, value: string) => {
     const newData = [...editingData];
     newData[index].value = parseFloat(value) || 0;
     setEditingData(newData);
