@@ -39,13 +39,10 @@ body {
 }
 
 body {
-  position: relative;
+  position: fixed;
   width: 100%;
   height: 100%;
   background: var(--background);
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
 }
 
 * {
@@ -139,18 +136,4 @@ div:last-child .katex-display {
 div:last-child div:last-child .katex-display {
   margin-bottom: 10px !important;
   padding-bottom: 6px !important;
-}
-
-/* Стили для корректного отображения на мобильных устройствах */
-@media (max-width: 768px) {
-  html, body {
-    position: relative;
-    height: auto;
-    min-height: 100vh;
-  }
-  
-  body {
-    display: flex;
-    flex-direction: column;
-  }
 }

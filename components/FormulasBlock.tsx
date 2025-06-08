@@ -246,7 +246,7 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       comment: 'Расчет среднемесячной заработной платы одного рабочего',
       unit: 'руб'
     },
-          {
+    {
       label: '17',
       title: 'Выручка',
       expression: `${result14} \\cdot ${forecast}`,
@@ -360,7 +360,7 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
               </svg>
               <span style={{ fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.7 }}>
                 Пояснение
-              </span>
+            </span>
             </div>
             {formula.comment}
           </div>
@@ -390,8 +390,8 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
                 justifyContent: 'center',
                 width: '100%',
                 minHeight: '60px'
-              }}>
-                <FormulaLatex formula={formula.expression} />
+            }}>
+              <FormulaLatex formula={formula.expression} />
               </div>
             </div>
           )}
@@ -427,7 +427,7 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
                     })
                   : formula.result}
               </span>
-              <span style={{
+            <span style={{
                 fontSize: '14px',
                 opacity: 0.7,
                 fontStyle: 'italic'
