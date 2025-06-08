@@ -299,12 +299,42 @@ a.secondary {
 
 .katexWrapper :global(.katex) {
   font-size: 1.1em !important;
+  max-width: 100%;
 }
 
 .katexWrapper :global(.katex-display) {
-  margin: 0.5em 0 !important;
+  margin: 1em 0 !important;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
+  padding: 0 4px;
+  max-width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.katexWrapper {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  padding: 10px 0;
+  scrollbar-width: none; /* Firefox */
+}
+
+.katexWrapper::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* Стили для дробей */
+.katexWrapper :global(.katex .mfrac) {
+  margin: 0.2em 0;
+}
+
+.katexWrapper :global(.katex .mfrac .frac-line) {
+  margin: 0.1em 0;
+}
+
+.katexWrapper :global(.katex .mord.mtight) {
+  padding: 0.05em 0;
 }
 
 .dataHeader {
@@ -470,4 +500,17 @@ a.secondary {
   .inputGroup label {
     font-size: 13px;
   }
+}
+
+.footerLink {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  padding-bottom: 1px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.footerLink:hover {
+  color: rgba(255, 255, 255, 0.9);
+  border-bottom-color: rgba(255, 255, 255, 0.5);
 }

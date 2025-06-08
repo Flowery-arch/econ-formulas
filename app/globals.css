@@ -68,20 +68,63 @@ a {
 }
 
 .katex-display {
-  margin: 0.5em 0 !important;
+  margin: 1em 0 !important;
   overflow-x: auto;
-  overflow-y: hidden;
-  padding: 0 4px;
-  padding-bottom: 4px;
+  overflow-y: visible;
+  padding: 8px 4px;
+  padding-bottom: 8px;
+  max-width: 100%;
+  display: flex;
+  justify-content: center;
+  scrollbar-width: none; /* Firefox */
+}
+
+.katex-display::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
 }
 
 .katex-display > .katex {
   white-space: normal;
+  max-width: 100%;
+  padding: 5px 0;
 }
 
 .katex-display > .katex > .katex-html {
   white-space: normal;
   line-height: 1.45 !important;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  scrollbar-width: none; /* Firefox */
+}
+
+.katex-display > .katex > .katex-html::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
+}
+
+/* Улучшение отображения дробей */
+.katex .mfrac .frac-line {
+  border-color: rgba(255, 255, 255, 0.8) !important;
+  margin: 0.15em 0 !important;
+  border-width: 0.06em !important;
+}
+
+.katex .mfrac {
+  margin: 0.25em 0;
+}
+
+.katex .mord.mtight {
+  color: rgba(255, 255, 255, 0.95) !important;
+  padding: 0.1em 0;
+}
+
+/* Дополнительное пространство для числителя и знаменателя */
+.katex .mfrac .mfracnum {
+  padding-bottom: 0.1em;
+}
+
+.katex .mfrac .mfracden {
+  padding-top: 0.1em;
 }
 
 /* Adjust last formula block spacing */
