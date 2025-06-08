@@ -5,6 +5,7 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import ThemeProviderWrapper from '../components/ThemeProviderWrapper';
 import "katex/dist/katex.min.css";
+import styles from './layout.module.css';
 
 export const metadata: Metadata = {
   title: 'Экономика: формулы для демо-экзамена',
@@ -29,14 +30,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <body style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        minHeight: '100vh' 
-      }}>
+      <body className={styles.layoutBody}>
         <ThemeProviderWrapper>
           <Header />
-          <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <main className={styles.layoutMain}>
             {children}
           </main>
           <Footer />

@@ -248,7 +248,7 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
     },
           {
       label: '17',
-      title: 'Общая стоимость изделий',
+      title: 'Выручка',
       expression: `${result14} \\cdot ${forecast}`,
       result: result17,
       comment: 'Расчет общей стоимости всех изделий',
@@ -256,7 +256,7 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
     },
     {
       label: '18',
-      title: 'Прибыль',
+      title: 'Маржинальная прибыль',
       expression: `${result17} - ${result12}`,
       result: result18,
       comment: 'Расчет прибыли (разница между общей стоимостью и затратами)',
