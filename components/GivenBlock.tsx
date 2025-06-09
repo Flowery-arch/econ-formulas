@@ -8,19 +8,21 @@ interface GivenBlockProps {
 const GivenBlock: React.FC<GivenBlockProps> = ({ data, title = 'Дано' }) => {
   return (
     <section style={{
-      background: 'var(--background)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
+      background: 'var(--background-light, #ffffff)',
+      border: '1px solid rgba(0, 0, 0, 0.1)',
       borderRadius: '8px',
+      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)'
     }}>
       <div style={{
         padding: '12px 16px',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-        background: 'rgba(255, 255, 255, 0.03)'
+        borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
+        background: 'rgba(0, 0, 0, 0.02)'
       }}>
         <h2 style={{
           fontSize: '15px',
           fontWeight: '500',
-          margin: 0
+          margin: 0,
+          color: 'var(--foreground, #333)'
         }}>{title}</h2>
       </div>
 
@@ -41,13 +43,14 @@ const GivenBlock: React.FC<GivenBlockProps> = ({ data, title = 'Дано' }) => 
               gridTemplateColumns: '1fr auto',
               gap: '12px',
               padding: '6px 10px',
-              background: idx % 2 === 0 ? 'rgba(255, 255, 255, 0.02)' : 'transparent',
+              background: idx % 2 === 0 ? 'rgba(0, 0, 0, 0.02)' : 'transparent',
               borderRadius: '4px',
               fontSize: '13px',
               alignItems: 'center'
             }}>
               <span style={{
-                opacity: 0.7,
+                color: 'var(--foreground, #333)',
+                opacity: 0.8,
                 minWidth: 0,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -62,11 +65,13 @@ const GivenBlock: React.FC<GivenBlockProps> = ({ data, title = 'Дано' }) => 
                 textAlign: 'right'
               }}>
                 <span style={{
-                  fontWeight: '500'
+                  fontWeight: '500',
+                  color: 'var(--foreground, #333)'
                 }}>{item.value}</span>
                 {item.unit && (
                   <span style={{
-                    opacity: 0.5,
+                    color: 'var(--foreground, #333)',
+                    opacity: 0.6,
                     fontSize: '12px',
                     whiteSpace: 'nowrap'
                   }}>{item.unit}</span>

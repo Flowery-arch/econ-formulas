@@ -10,7 +10,12 @@ export default function FormulaLatex({ formula }: { formula: string }) {
         width: '100%', 
         display: 'flex', 
         justifyContent: 'center',
-        padding: '10px 0'
+        padding: '10px 0',
+        background: 'rgba(0, 0, 0, 0.02)',
+        borderRadius: '8px',
+        border: '1px solid rgba(0, 0, 0, 0.05)',
+        margin: '10px 0',
+        boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.05)'
       }}>
         <BlockMath math={formula} />
       </div>

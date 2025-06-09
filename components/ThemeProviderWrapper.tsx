@@ -16,7 +16,7 @@ export default function ThemeProviderWrapper({ children }: { children: React.Rea
   }
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
       {children}
     </ThemeProvider>
   );

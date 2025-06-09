@@ -8,6 +8,7 @@ interface Formula {
   result: string | number;
   comment: string;
   unit: string;
+  hints?: {text: string; value: string | number; source: string}[];
 }
 
 interface FormulasBlockProps {
@@ -38,7 +39,14 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
   const result2 = Math.trunc((assemblyTime * forecast / divisor) * 100) / 100;
   
   // Формула 3
-  const result3 = Math.trunc((result2 / result1) * 100) / 100;
+  const result3Raw = Math.trunc((result2 / result1) * 100) / 100;
+  // Применяем правило округления: если в ответе есть 16 сотых или больше, округляем вверх
+  const result3 = result3Raw;
+  
+  // Определяем количество людей для формул 15 и 16 по правилу округления
+  const hasDecimal = ((result3Raw * 100) % 100) > 0;
+  const hasSignificantDecimal = ((result3Raw * 100) % 100) >= 16;
+  const peopleNeeded = hasSignificantDecimal ? Math.ceil(result3Raw) : (hasDecimal ? Math.floor(result3Raw) : result3Raw);
 
   // Формула 4
   const hourlyRate = Number(data.find(d => d.label === 'Средняя часовая тарифная ставка')?.value) || 0;
@@ -64,7 +72,7 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
   const result8 = Math.trunc((28 / workDays * 100 + 1) * 100) / 100;
 
   // Формула 9
-  const result9 = Math.trunc((result7 * result8) * 100) / 100;
+  const result9 = Math.trunc((result7 * result8 / 100) * 100) / 100;
 
   // Формула 10
   const result10 = Math.trunc((result7 + result9) * 100) / 100;
@@ -90,11 +98,10 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
   const result14 = Math.trunc((result12 + result13 + 0 + 0) * 100) / 100;
 
   // Формула 15
-  const result15 = Math.trunc((forecast / assemblyTime) * 100) / 100;
-  const peopleNeeded = Math.ceil(result3);
+  const result15 = Math.trunc((forecast / peopleNeeded) * 100) / 100;
   
   // Формула 16
-  const result16 = Math.trunc((result10 / Math.ceil(result3) * 12) * 100) / 100;
+  const result16 = Math.trunc((result10 / (peopleNeeded * 12)) * 100) / 100;
 
   // Формула 17
   const result17 = Math.trunc((result14 * forecast) * 100) / 100;
@@ -124,7 +131,14 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `[365 - (${holidays} + 28 + (${workDays} \\cdot ${notWork/100}) + (${workDays} \\cdot ${notWorkDuty/100})) ] \\cdot ${shiftHours} - ${extraHolidays}`,
       result: result1,
       comment: 'Расчет годового фонда рабочего времени в часах с учетом выходных, праздников и сокращенных дней',
-      unit: 'час'
+      unit: 'час',
+      hints: [
+        {text: 'Выходные и праздники', value: holidays, source: 'Исходные данные'},
+        {text: 'Отпуск', value: 28, source: 'Стандартное значение'},
+        {text: 'Дни по болезни', value: sickDays, source: `${workDays} × ${notWork}%`},
+        {text: 'Дни на гос. обязанности', value: dutyDays, source: `${workDays} × ${notWorkDuty}%`},
+        {text: 'Сокращение предпраздничных дней', value: extraHolidays, source: 'Исходные данные'}
+      ]
     },
     {
       label: '2',
@@ -132,7 +146,12 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `\\frac{${assemblyTime} \\cdot ${forecast}}{${divisor}}`,
       result: result2,
       comment: 'Расчет общей трудоемкости годовой программы в часах с учетом времени сборки одного изделия',
-      unit: 'час'
+      unit: 'час',
+      hints: [
+        {text: 'Время сборки 1 изделия', value: assemblyTime, source: 'Исходные данные'},
+        {text: 'Годовой прогноз', value: forecast, source: 'Исходные данные'},
+        {text: 'Перевод минут в часы', value: divisor, source: '60 минут в часе'}
+      ]
     },
     {
       label: '3',
@@ -140,7 +159,11 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `\\frac{${result2}}{${result1}}`,
       result: result3,
       comment: 'Определение необходимого количества рабочих для выполнения годовой программы',
-      unit: 'чел'
+      unit: 'чел',
+      hints: [
+        {text: 'Трудоемкость годовой программы', value: result2, source: 'Формула 2'},
+        {text: 'Фонд рабочего времени', value: result1, source: 'Формула 1'}
+      ]
     },
     {
       label: '4',
@@ -148,7 +171,11 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `${hourlyRate} \\cdot ${result2}`,
       result: result4,
       comment: 'Расчет основной заработной платы с учетом часовой тарифной ставки и трудоемкости',
-      unit: 'руб'
+      unit: 'руб',
+      hints: [
+        {text: 'Часовая тарифная ставка', value: hourlyRate, source: 'Исходные данные'},
+        {text: 'Трудоемкость годовой программы', value: result2, source: 'Формула 2'}
+      ]
     },
     {
       label: '5',
@@ -156,7 +183,12 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `${hourlyRate} \\cdot ${result1} \\cdot 1 \\cdot ${bonusDecimal}`,
       result: result5,
       comment: 'Расчет доплаты бригадиру с учетом тарифной ставки и фонда рабочего времени',
-      unit: 'руб'
+      unit: 'руб',
+      hints: [
+        {text: 'Часовая тарифная ставка', value: hourlyRate, source: 'Исходные данные'},
+        {text: 'Фонд рабочего времени', value: result1, source: 'Формула 1'},
+        {text: 'Процент доплаты', value: bonusPercent, source: result3 > 10 ? 'Доплата за руководство бригадой (свыше 10 чел)' : 'Доплата за руководство бригадой (до 10 чел)'}
+      ]
     },
     {
       label: '6',
@@ -164,7 +196,11 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `(${result4} + 0 + 0) \\cdot ${workerBonusDecimal}`,
       result: result6,
       comment: 'Расчет премиальных выплат сборщику как процент от основной заработной платы',
-      unit: 'руб'
+      unit: 'руб',
+      hints: [
+        {text: 'Основная заработная плата', value: result4, source: 'Формула 4'},
+        {text: 'Процент премии', value: workerBonusDecimal, source: 'Исходные данные'}
+      ]
     },
     {
       label: '7',
@@ -172,7 +208,12 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `${result4} + 0 + 0 + ${result5} + ${result6}`,
       result: result7,
       comment: 'Сумма основной заработной платы, доплаты за руководство и премий',
-      unit: 'руб'
+      unit: 'руб',
+      hints: [
+        {text: 'Основная заработная плата', value: result4, source: 'Формула 4'},
+        {text: 'Доплата за руководство бригадой', value: result5, source: 'Формула 5'},
+        {text: 'Премия сборщика', value: result6, source: 'Формула 6'}
+      ]
     },
     {
       label: '8',
@@ -180,15 +221,23 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `\\frac{28}{${workDays}} \\cdot 100 + 1`,
       result: result8,
       comment: 'Расчет коэффициента дополнительной заработной платы с учетом отпусков и невыходов',
-      unit: '%'
+      unit: '%',
+      hints: [
+        {text: 'Дни отпуска', value: 28, source: 'Стандартное значение'},
+        {text: 'Количество рабочих дней в году', value: workDays, source: 'Исходные данные'}
+      ]
     },
     {
       label: '9',
       title: 'Дополнительная заработная плата',
-      expression: `${result7} \\cdot ${result8}`,
+      expression: `${result7} \\cdot ${result8}\\%`,
       result: result9,
-      comment: 'Расчет дополнительной заработной платы с учетом коэффициента',
-      unit: 'руб'
+      comment: 'Расчет дополнительной заработной платы с учетом коэффициента в процентах',
+      unit: 'руб',
+      hints: [
+        {text: 'Основной фонд заработной платы', value: result7, source: 'Формула 7'},
+        {text: 'Коэффициент дополнительной зарплаты', value: result8, source: 'Формула 8'}
+      ]
     },
     {
       label: '10',
@@ -196,7 +245,11 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `${result7} + ${result9}`,
       result: result10,
       comment: 'Сумма основного и дополнительного фонда заработной платы',
-      unit: 'руб'
+      unit: 'руб',
+      hints: [
+        {text: 'Основной фонд заработной платы', value: result7, source: 'Формула 7'},
+        {text: 'Дополнительная заработная плата', value: result9, source: 'Формула 9'}
+      ]
     },
     {
       label: '11',
@@ -204,7 +257,11 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `${result10} \\cdot ${accrualDecimal}`,
       result: result11,
       comment: 'Расчет отчислений на социальные нужды (30.6%) от общего фонда заработной платы',
-      unit: 'руб'
+      unit: 'руб',
+      hints: [
+        {text: 'Общий фонд заработной платы', value: result10, source: 'Формула 10'},
+        {text: 'Начисление', value: accrualPercent, source: 'Исходные данные'}
+      ]
     },
     {
       label: '12',
@@ -212,7 +269,11 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `${result10} + ${result11}`,
       result: result12,
       comment: 'Сумма общего фонда заработной платы и отчислений на социальные нужды',
-      unit: 'руб'
+      unit: 'руб',
+      hints: [
+        {text: 'Общий фонд заработной платы', value: result10, source: 'Формула 10'},
+        {text: 'Отчисления на социальные нужды', value: result11, source: 'Формула 11'}
+      ]
     },
     {
       label: '13',
@@ -220,7 +281,11 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `${result10} \\cdot ${overheadDecimal}`,
       result: result13,
       comment: 'Расчет накладных расходов (75%) от общего фонда заработной платы',
-      unit: 'руб'
+      unit: 'руб',
+      hints: [
+        {text: 'Общий фонд заработной платы', value: result10, source: 'Формула 10'},
+        {text: 'Начисление', value: overheadPercent, source: 'Исходные данные'}
+      ]
     },
     {
       label: '14',
@@ -228,23 +293,38 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `${result12} + ${result13} + 0 + 0`,
       result: result14,
       comment: 'Сумма затрат на оплату труда с отчислениями и накладных расходов',
-      unit: 'руб'
+      unit: 'руб',
+      hints: [
+        {text: 'Затраты на оплату труда с отчислениями', value: result12, source: 'Формула 12'},
+        {text: 'Накладные расходы', value: result13, source: 'Формула 13'}
+      ]
     },
     {
       label: '15',
       title: 'Выработка на одного рабочего',
       expression: `\\frac{${forecast}}{${peopleNeeded}}`,
-      result: Math.trunc((forecast / peopleNeeded) * 100) / 100,
-      comment: 'Расчет количества изделий, производимых одним рабочим',
-      unit: 'шт'
+      result: result15,
+      comment: 'Расчет количества изделий, производимых одним рабочим. Для расчета используется количество рабочих с округлением: от 0.16 округляем вверх, при меньших дробных частях используем целую часть.',
+      unit: 'шт',
+      hints: [
+        {text: 'Годовой производственный прогноз', value: forecast, source: 'Исходные данные'},
+        {text: 'Количество рабочих', value: peopleNeeded, source: 'Формула 3 с округлением'},
+        {text: 'Правило округления', value: 'От 0.16 округляем вверх, иначе берем целую часть', source: 'Условие задачи'}
+      ]
     },
     {
       label: '16',
       title: 'Среднемесячная зарплата рабочего',
-      expression: `\\frac{${result10}}{${Math.ceil(result3)}} \\cdot 12`,
+      expression: `\\frac{${result10}}{${peopleNeeded} \\cdot 12}`,
       result: result16,
-      comment: 'Расчет среднемесячной заработной платы одного рабочего',
-      unit: 'руб'
+      comment: 'Расчет среднемесячной заработной платы одного рабочего. Общий фонд заработной платы делится на количество рабочих (с округлением), умноженное на количество месяцев в году.',
+      unit: 'руб',
+      hints: [
+        {text: 'Общий фонд заработной платы', value: result10, source: 'Формула 10'},
+        {text: 'Количество рабочих', value: peopleNeeded, source: 'Формула 3 с округлением'},
+        {text: 'Правило округления', value: 'От 0.16 округляем вверх, иначе берем целую часть', source: 'Условие задачи'},
+        {text: 'Количество месяцев в году', value: 12, source: 'Константа'}
+      ]
     },
     {
       label: '17',
@@ -252,7 +332,11 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `${result14} \\cdot ${forecast}`,
       result: result17,
       comment: 'Расчет общей стоимости всех изделий',
-      unit: 'руб'
+      unit: 'руб',
+      hints: [
+        {text: 'Полная себестоимость', value: result14, source: 'Формула 14'},
+        {text: 'Годовой производственный прогноз', value: forecast, source: 'Исходные данные'}
+      ]
     },
     {
       label: '18',
@@ -260,7 +344,11 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `${result17} - ${result12}`,
       result: result18,
       comment: 'Расчет прибыли (разница между общей стоимостью и затратами)',
-      unit: 'руб'
+      unit: 'руб',
+      hints: [
+        {text: 'Выручка', value: result17, source: 'Формула 17'},
+        {text: 'Затраты на оплату труда с отчислениями', value: result12, source: 'Формула 12'}
+      ]
     },
     {
       label: '19',
@@ -268,7 +356,11 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `\\frac{${result18}}{${result17}} \\cdot 100`,
       result: result19,
       comment: 'Расчет рентабельности в процентах',
-      unit: '%'
+      unit: '%',
+      hints: [
+        {text: 'Маржинальная прибыль', value: result18, source: 'Формула 18'},
+        {text: 'Выручка', value: result17, source: 'Формула 17'}
+      ]
     },
     {
       label: '20',
@@ -276,7 +368,12 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `\\frac{${result13}}{\\frac{${result14}}{${forecast}} - \\frac{${result12}}{${forecast}}}`,
       result: result20,
       comment: 'Расчет точки безубыточности (количество изделий)',
-      unit: 'шт'
+      unit: 'шт',
+      hints: [
+        {text: 'Накладные расходы', value: result13, source: 'Формула 13'},
+        {text: 'Полная себестоимость', value: result14, source: 'Формула 14'},
+        {text: 'Годовой производственный прогноз', value: forecast, source: 'Исходные данные'}
+      ]
     },
     {
       label: '21',
@@ -284,9 +381,135 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       expression: `\\frac{${result13}}{(${result17} - ${result12}) \\cdot ${result17}}`,
       result: result21,
       comment: 'Расчет запаса финансовой прочности',
-      unit: '%'
+      unit: '%',
+      hints: [
+        {text: 'Накладные расходы', value: result13, source: 'Формула 13'},
+        {text: 'Маржинальная прибыль', value: result18, source: 'Формула 18'},
+        {text: 'Выручка', value: result17, source: 'Формула 17'}
+      ]
     },
   ];
+
+  // Стили для светлой темы
+  const formulaBlockStyle = {
+    background: 'rgba(255, 255, 255, 0.8)',
+    border: '1px solid rgba(0, 0, 0, 0.1)',
+    borderRadius: '8px',
+    padding: '16px',
+    marginBottom: '20px',
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)'
+  };
+
+  const formulaTitleStyle = {
+    fontSize: '18px',
+    fontWeight: '600',
+    marginBottom: '12px',
+    color: '#333',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  };
+
+  const formulaLabelStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '28px',
+    height: '28px',
+    borderRadius: '50%',
+    background: 'rgba(0, 0, 0, 0.05)',
+    color: '#444',
+    fontSize: '14px',
+    fontWeight: '600'
+  };
+
+  const resultBlockStyle = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: '8px',
+    padding: '10px 16px',
+    background: 'rgba(0, 0, 0, 0.03)',
+    borderRadius: '6px',
+    marginTop: '12px',
+    fontSize: '16px'
+  };
+
+  const resultLabelStyle = {
+    fontWeight: '500',
+    color: '#555'
+  };
+
+  const resultValueStyle = {
+    fontWeight: '600',
+    color: '#333'
+  };
+
+  const resultUnitStyle = {
+    color: '#777',
+    fontSize: '14px',
+    marginLeft: '4px'
+  };
+
+  const commentStyle = {
+    fontSize: '14px',
+    color: '#666',
+    marginTop: '10px',
+    fontStyle: 'italic',
+    lineHeight: '1.4'
+  };
+
+  // Стили для подсказок
+  const hintsContainerStyle = {
+    marginTop: '16px',
+    background: 'rgba(240, 248, 255, 0.7)',
+    border: '1px solid rgba(0, 0, 0, 0.05)',
+    borderRadius: '6px',
+    padding: '12px'
+  };
+
+  const hintsHeaderStyle = {
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#444',
+    marginBottom: '8px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px'
+  };
+
+  const hintsListStyle = {
+    margin: '0',
+    padding: '0',
+    listStyle: 'none',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: '6px'
+  };
+
+  const hintItemStyle = {
+    fontSize: '13px',
+    color: '#555',
+    display: 'flex',
+    justifyContent: 'space-between',
+    padding: '4px 0',
+    borderBottom: '1px dashed rgba(0, 0, 0, 0.05)'
+  };
+
+  const hintTextStyle = {
+    fontWeight: '500'
+  };
+
+  const hintValueStyle = {
+    fontWeight: '600',
+    color: '#333'
+  };
+
+  const hintSourceStyle = {
+    fontSize: '12px',
+    color: '#777',
+    fontStyle: 'italic'
+  };
 
   return (
     <div style={{
@@ -296,146 +519,46 @@ const FormulasBlock: React.FC<FormulasBlockProps> = ({ data }) => {
       paddingBottom: '15px'
     }}>
       {formulas.map((formula, index) => (
-        <div key={formula.label} style={{
-          background: 'var(--background)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '12px',
-          padding: '22px',
-          paddingBottom: index === formulas.length - 1 ? '26px' : '24px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-          marginBottom: index === formulas.length - 1 ? '10px' : '24px',
-          transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
-          position: 'relative',
-          overflow: 'hidden'
-        }}>
-          <div style={{
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '14px',
-            flexWrap: 'wrap'
-          }}>
-            <div style={{
-              background: 'rgba(255, 255, 255, 0.08)',
-              padding: '6px 12px',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: '100px',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.2)'
-            }}>
-              {`Формула ${formula.label}`}
-            </div>
-            <h3 style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: 'rgba(255, 255, 255, 0.95)',
-              margin: 0
-            }}>
-              {formula.title}
-            </h3>
+        <div key={formula.label} style={formulaBlockStyle}>
+          <div style={formulaTitleStyle}>
+            <span style={formulaLabelStyle}>{formula.label}</span>
+            {formula.title}
           </div>
-          <div style={{
-            marginBottom: '18px',
-            fontSize: '14px',
-            lineHeight: '1.6',
-            color: 'rgba(255, 255, 255, 0.8)',
-            background: 'rgba(255, 255, 255, 0.03)',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            borderLeft: '4px solid rgba(255, 255, 255, 0.15)',
-            boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              marginBottom: '4px'
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ marginRight: '8px', opacity: 0.7 }}>
-                <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm0-2a8 8 0 100-16 8 8 0 000 16zm-1-5h2v2h-2v-2zm0-8h2v6h-2V7z" 
-                  fill="rgba(255, 255, 255, 0.7)" />
-              </svg>
-              <span style={{ fontWeight: '600', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px', opacity: 0.7 }}>
-                Пояснение
-            </span>
-            </div>
-            {formula.comment}
+          <FormulaLatex formula={formula.expression} />
+          <div style={resultBlockStyle}>
+            <span style={resultLabelStyle}>Результат:</span>
+            <span style={resultValueStyle}>{typeof formula.result === 'number' 
+              ? formula.result.toLocaleString('ru-RU', {
+                  minimumFractionDigits: 0,
+                  maximumFractionDigits: 2
+                })
+              : formula.result}</span>
+            <span style={resultUnitStyle}>{formula.unit}</span>
           </div>
-
-          {formula.expression && (
-            <div style={{
-              background: 'rgba(0, 0, 0, 0.25)',
-              padding: '20px',
-              paddingTop: '24px',
-              paddingBottom: '24px',
-              borderRadius: '10px',
-              marginBottom: '20px',
-              marginTop: '5px',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              width: '100%',
-              overflowX: 'auto',
-              overflowY: 'visible',
-              scrollbarWidth: 'none', /* Firefox */
-              WebkitOverflowScrolling: 'touch',
-              boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.3)',
-              minHeight: '100px',
-              display: 'flex',
-              alignItems: 'center'
-            }}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                width: '100%',
-                minHeight: '60px'
-            }}>
-              <FormulaLatex formula={formula.expression} />
+          <div style={commentStyle}>{formula.comment}</div>
+          
+          {formula.hints && formula.hints.length > 0 && (
+            <div style={hintsContainerStyle}>
+              <div style={hintsHeaderStyle}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-1-11v6h2v-6h-2zm0-4v2h2V7h-2z" 
+                    fill="#4a6fa5"/>
+                </svg>
+                Используемые значения:
               </div>
+              <ul style={hintsListStyle}>
+                {formula.hints.map((hint, hintIndex) => (
+                  <li key={hintIndex} style={hintItemStyle}>
+                    <span style={hintTextStyle}>{hint.text}:</span>
+                    <div>
+                      <span style={hintValueStyle}>{typeof hint.value === 'number' ? hint.value.toLocaleString('ru-RU', {minimumFractionDigits: 0, maximumFractionDigits: 2}) : hint.value}</span>
+                      <span style={hintSourceStyle}> ({hint.source})</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
-
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            background: 'rgba(0, 0, 0, 0.2)',
-            padding: '14px 18px',
-            paddingBottom: index === formulas.length - 1 ? '16px' : '14px',
-            borderRadius: '8px',
-            border: '1px solid rgba(255, 255, 255, 0.05)'
-          }}>
-            <span style={{
-              fontSize: '14px',
-              opacity: 0.75
-            }}>Результат:</span>
-            <div style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              gap: '6px'
-            }}>
-              <span style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: 'rgba(255, 255, 255, 0.95)'
-              }}>
-                {typeof formula.result === 'number' 
-                  ? formula.result.toLocaleString('ru-RU', {
-                      minimumFractionDigits: 0,
-                      maximumFractionDigits: 2
-                    })
-                  : formula.result}
-              </span>
-            <span style={{
-                fontSize: '14px',
-                opacity: 0.7,
-                fontStyle: 'italic'
-              }}>
-                {formula.unit}
-              </span>
-            </div>
-          </div>
         </div>
       ))}
     </div>
